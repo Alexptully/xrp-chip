@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A chip for you</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Limelight&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xrpl@5.3.0/build/xrpl-latest-min.js"></script>
+<style>
+:root{
+  --bg:#dfe7e0; --panel:#eef3ee; --ink:#12241c; --muted:#4b5f55; --line:#b9c9be;
+  --felt:#1f4c3d; --red:#b3303a; --bone:#f2e9d8; --brass:#b8892f; --ok:#1f7a4d; --err:#a3262f;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15352b; --panel:#1c4337; --ink:#f2e9d8; --muted:#b5c7bd; --line:#2f5e4f;
+    --felt:#0f2a21; --red:#c43a44; --bone:#f2e9d8; --brass:#d8ad55; --ok:#6fd19c; --err:#ff8a8f;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15352b; --panel:#1c4337; --ink:#f2e9d8; --muted:#b5c7bd; --line:#2f5e4f;
+  --felt:#0f2a21; --red:#c43a44; --bone:#f2e9d8; --brass:#d8ad55; --ok:#6fd19c; --err:#ff8a8f;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+  font:400 17px/1.55 "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background-image:radial-gradient(circle at 50% 0%, rgba(255,255,255,.06), transparent 60%);
+}
+main{max-width:600px; margin:0 auto; padding:32px 20px 64px}
+h1,h2{font-weight:700; line-height:1.15; margin:0 0 .4em}
+h1{font-size:clamp(28px,6vw,38px)}
+h2{font-size:21px}
+p{margin:0 0 1em}
+a{color:inherit; text-underline-offset:3px}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.hidden{display:none !important}
+
+/* Chip */
+.chip-wrap{display:grid; place-items:center; perspective:900px; margin:8px 0 28px}
+.chip{width:min(78vw,300px); height:auto; transform-style:preserve-3d}
+.chip.spin{animation:spin 1.6s cubic-bezier(.2,.7,.2,1) 1}
+.chip.flip{animation:spin 1s cubic-bezier(.3,.6,.2,1) 1}
+@keyframes spin{from{transform:rotateY(-540deg) scale(.85)}to{transform:rotateY(0) scale(1)}}
+@media (prefers-reduced-motion: reduce){.chip.spin,.chip.flip{animation:none}}
+.chip-name{font-family:"Limelight", Georgia, serif}
+
+.to{font-family:"Limelight", Georgia, serif; font-weight:400; font-size:clamp(34px,8vw,48px); text-align:center; margin-bottom:6px}
+.from{text-align:center; color:var(--muted); margin-bottom:26px}
+.note{
+  background:var(--panel); border:1px solid var(--line); border-radius:6px;
+  padding:18px 20px; font-size:19px; white-space:pre-wrap; margin-bottom:26px;
+}
+section{margin-bottom:34px}
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+label{display:block; font-weight:600; margin:14px 0 6px}
+input,textarea{
+  width:100%; font:inherit; color:var(--ink); background:var(--panel);
+  border:1.5px solid var(--line); border-radius:6px; padding:11px 13px;
+}
+textarea{min-height:88px; resize:vertical}
+input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--brass); outline-offset:2px}
+button{
+  font:inherit; font-weight:600; cursor:pointer; border-radius:999px; padding:11px 20px;
+  border:2px solid var(--red); background:var(--red); color:#fff8ee;
+}
+button.ghost{background:transparent; color:var(--ink); border-color:var(--line)}
+button:disabled{opacity:.55; cursor:progress}
+.key{
+  font-family:"JetBrains Mono", ui-monospace, Menlo, monospace; font-size:15px;
+  background:var(--felt); color:var(--bone); border-radius:6px; padding:14px 16px;
+  overflow-wrap:anywhere; margin:8px 0 10px; user-select:all;
+}
+.status{min-height:1.4em; font-size:15px; margin-top:10px}
+.status.ok{color:var(--ok)} .status.err{color:var(--err)}
+ol.steps{padding-left:1.3em; margin:0 0 1em} ol.steps li{margin-bottom:.55em}
+
+/* Setup */
+.step{border-top:1px solid var(--line); padding-top:22px}
+.step h2{display:flex; gap:12px; align-items:baseline}
+.step h2 .n{
+  flex:none; width:30px; height:30px; border-radius:50%; background:var(--red); color:#fff8ee;
+  display:inline-grid; place-items:center; font-size:15px; transform:translateY(-2px);
+}
+.fits{font-size:14px; margin-top:6px}
+.bal{text-align:center; font-size:15px; color:var(--muted); margin:-10px 0 26px}
+details summary{color:var(--muted)}
+.warn{border-left:3px solid var(--brass); padding:4px 0 4px 14px; margin:14px 0}
+</style>
+</head>
+<body>
+<main>
+
+<!-- ============ CLAIM MODE ============ -->
+<div id="claim" class="hidden">
+  <div class="chip-wrap">
+    <svg id="chipSvg" class="chip" viewBox="0 0 240 240" role="img" aria-label="Poker chip">
+      <circle cx="120" cy="120" r="116" fill="var(--red)"/>
+      <g id="edges" fill="var(--bone)"></g>
+      <circle cx="120" cy="120" r="84" fill="none" stroke="var(--bone)" stroke-width="2" stroke-dasharray="4 6" opacity=".8"/>
+      <circle cx="120" cy="120" r="74" fill="var(--bone)"/>
+      <circle cx="120" cy="120" r="66" fill="none" stroke="var(--brass)" stroke-width="2"/>
+      <text id="chipTop" x="120" y="112" text-anchor="middle" class="chip-name" font-size="34" fill="var(--red)">1 XRP</text>
+      <text id="chipBottom" x="120" y="140" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-size="13" font-weight="600" fill="#3a3a3a" letter-spacing="1">locked</text>
+    </svg>
+  </div>
+  <h1 class="to" id="toLine">For you</h1>
+  <p class="from" id="fromLine"></p>
+  <div class="note" id="msg"></div>
+  <p class="bal" id="balLine">Checking the XRP Ledger…</p>
+
+  <section id="unlockBox">
+    <h2>Unlock your chip</h2>
+    <p class="muted" id="hintLine"></p>
+    <label for="pass">Passphrase</label>
+    <input id="pass" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <p class="small muted" style="margin-top:6px">Not case-sensitive.</p>
+    <div class="row"><button id="unlockBtn">Unlock</button></div>
+    <div class="status" id="unlockStatus" role="status"></div>
+  </section>
+
+  <section id="revealBox" class="hidden">
+    <div id="sendForm">
+      <h2>Send it to your Robinhood</h2>
+      <ol class="steps">
+        <li>In Robinhood, open <strong>XRP</strong> and choose <strong>Receive</strong>.</li>
+        <li>Copy the XRP address and the tag (a number) it shows, and paste both below.</li>
+      </ol>
+      <label for="destIn">Robinhood XRP address</label>
+      <input id="destIn" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="r…">
+      <label for="tagIn">Tag</label>
+      <input id="tagIn" inputmode="numeric" autocomplete="off" placeholder="Numbers only">
+      <p class="small muted" style="margin-top:6px">The tag tells Robinhood the XRP is yours. Without the right tag the transfer can get lost.</p>
+      <div class="row" style="margin-top:12px"><button id="reviewBtn">Review transfer</button></div>
+    </div>
+    <div id="confirmBox" class="hidden">
+      <h2>Check before sending</h2>
+      <div class="note" id="confirmText" style="font-size:17px"></div>
+      <div class="row">
+        <button id="sendBtn">Send to Robinhood</button>
+        <button class="ghost" id="editBtn">Edit details</button>
+      </div>
+    </div>
+    <div id="doneBox" class="hidden">
+      <h2>Sent</h2>
+      <p id="doneText"></p>
+      <p class="small">Robinhood usually credits XRP within a few minutes. If it doesn't show up, open the app; Robinhood sometimes asks a question about a deposit before crediting it.</p>
+      <p class="small"><a id="txLink" target="_blank" rel="noopener">See the transfer on the XRP Ledger</a></p>
+    </div>
+    <div class="status" id="sendStatus" role="status"></div>
+
+    <details style="margin-top:26px">
+      <summary class="small" style="cursor:pointer">Prefer your own wallet instead?</summary>
+      <p class="small" style="margin-top:12px">This is the secret key to the gift wallet. Anyone with it controls the funds. Import it into Xaman under <strong>Add account → Import an existing account → Family seed</strong>.</p>
+      <div class="key" id="seedOut"></div>
+      <div class="row"><button class="ghost" id="copySeed">Copy key</button></div>
+      <div class="status" id="copyStatus" role="status"></div>
+    </details>
+  </section>
+
+  <section>
+    <p class="small"><a id="ledgerLink" target="_blank" rel="noopener">See this wallet on the XRP Ledger</a> <span class="muted">(opens xrpscan.com)</span></p>
+  </section>
+</div>
+
+<!-- ============ OPEN A CODE (fallback) ============ -->
+<div id="codeBox" class="hidden">
+  <h1>Open a gift chip</h1>
+  <p class="muted">If tapping the chip brought you here without your gift, paste the gift code below.</p>
+  <label for="codeIn">Gift code</label>
+  <textarea id="codeIn" spellcheck="false"></textarea>
+  <div class="row" style="margin-top:12px"><button id="codeBtn">Open gift</button></div>
+  <div class="status" id="codeStatus" role="status"></div>
+  <p class="small" style="margin-top:24px"><a href="#" id="toSetup">Make a gift chip instead</a></p>
+</div>
+
+<!-- ============ SETUP MODE ============ -->
+<div id="setup" class="hidden">
+  <h1>Put XRP in a poker chip</h1>
+  <p class="muted">Make a wallet, fund it, lock its key with a passphrase, and write the link to an NFC tag. The key is created and encrypted on this device and never sent anywhere.</p>
+  <p class="small"><a href="#" id="toCode">I have a gift code to open</a></p>
+
+  <section class="step">
+    <h2><span class="n">1</span>Create the wallet</h2>
+    <div class="row">
+      <button id="genBtn">Generate a new wallet</button>
+      <button class="ghost" id="useOwnBtn">Use a key I already have</button>
+    </div>
+    <div id="ownSeedBox" class="hidden">
+      <label for="ownSeed">Family seed (starts with "s")</label>
+      <input id="ownSeed" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="row" style="margin-top:10px"><button class="ghost" id="loadOwnBtn">Load key</button></div>
+    </div>
+    <div class="status" id="genStatus" role="status"></div>
+    <div id="walletOut" class="hidden">
+      <label>Wallet address (safe to share)</label>
+      <div class="key" id="addrOut"></div>
+      <div class="row"><button class="ghost" id="copyAddr">Copy address</button></div>
+      <label style="margin-top:18px">Secret key (back this up)</label>
+      <div class="key" id="seedBackup"></div>
+      <p class="warn small">Write this key down and keep it until your friend has claimed the gift. If the chip is lost or the passphrase forgotten, this is the only way to recover the funds.</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">2</span>Fund it from Robinhood</h2>
+    <p>The wallet needs <strong>at least 2.1 XRP</strong> for your friend to receive a full 1 XRP in Robinhood. The first 1 XRP stays locked as the ledger's reserve and can't be sent. If Robinhood asks for a destination tag when you send, pick the option for no tag; a personal wallet doesn't use one.</p>
+    <div class="row"><button class="ghost" id="balBtn">Check balance</button></div>
+    <div class="status" id="balStatus" role="status"></div>
+    <p class="small"><a id="fundLink" target="_blank" rel="noopener" class="hidden">View on xrpscan.com</a></p>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">3</span>Write the card and set a passphrase</h2>
+    <label for="toIn">Friend's name</label>
+    <input id="toIn" maxlength="40" placeholder="Sam">
+    <label for="fromIn">From</label>
+    <input id="fromIn" maxlength="40" placeholder="Alex">
+    <label for="amtIn">What the chip says</label>
+    <input id="amtIn" maxlength="12" value="1 XRP">
+    <label for="msgIn">Message</label>
+    <textarea id="msgIn" maxlength="200" placeholder="Happy birthday. Don't spend it all in one place."></textarea>
+    <label for="passIn">Passphrase</label>
+    <input id="passIn" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="three or four words only they'd know">
+    <label for="hintIn">Hint shown on the page</label>
+    <input id="hintIn" maxlength="80" placeholder="Where we met, all lowercase">
+    <p class="warn small">Someone who copies the tag could try guessing the passphrase offline. A 4-digit PIN falls in minutes; a three or four word phrase is out of reach. For a few dollars either is fine, just know the trade.</p>
+    <label for="baseIn">Page link</label>
+    <input id="baseIn" spellcheck="false">
+    <p class="small muted" style="margin-top:6px">This page's web address. On GitHub Pages it fills itself in; only change it if you move the page.</p>
+    <div class="row" style="margin-top:14px"><button id="buildBtn">Build chip link</button></div>
+    <div class="status" id="buildStatus" role="status"></div>
+  </section>
+
+  <section class="step hidden" id="linkOut">
+    <h2><span class="n">4</span>Write it to the tag</h2>
+    <label>Chip link</label>
+    <div class="key" id="urlOut"></div>
+    <p class="fits" id="fitsOut"></p>
+    <div class="row">
+      <button class="ghost" id="copyUrl">Copy link</button>
+      <button class="ghost" id="copyCode">Copy gift code only</button>
+      <button class="ghost" id="previewBtn">Preview as friend</button>
+    </div>
+    <div class="status" id="linkStatus" role="status"></div>
+    <ol class="steps" style="margin-top:16px">
+      <li>In NFC Tools (iOS or Android), choose <strong>Write</strong>, add a <strong>URL</strong> record, and paste the chip link.</li>
+      <li>Write it to the tag, then tap the tag with a phone to test that the gift page opens and the passphrase works.</li>
+      <li>Once it works, use <strong>Other → Lock tag</strong> so nobody can overwrite it. Locking is permanent.</li>
+    </ol>
+  </section>
+</div>
+
+</main>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const te = new TextEncoder(), td = new TextDecoder();
+  const ITER = 310000;
+
+  const b64u = {
+    enc: bytes => { let s = ""; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); },
+    dec: str => { let s = str.trim().replace(/-/g,"+").replace(/_/g,"/"); while (s.length % 4) s += "="; return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
+  };
+  const norm = p => p.normalize("NFKC").trim().toLowerCase().replace(/\s+/g, " ");
+
+  async function deriveKey(pass, salt, iter) {
+    const base = await crypto.subtle.importKey("raw", te.encode(norm(pass)), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name:"PBKDF2", salt, iterations:iter, hash:"SHA-256" }, base, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]);
+  }
+  async function seal(seed, pass, addr) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(pass, salt, ITER);
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name:"AES-GCM", iv, additionalData: te.encode(addr) }, key, te.encode(seed)));
+    return { s:b64u.enc(salt), i:b64u.enc(iv), c:b64u.enc(ct), k:ITER };
+  }
+  async function unseal(p, pass) {
+    const key = await deriveKey(pass, b64u.dec(p.s), p.k || ITER);
+    const pt = await crypto.subtle.decrypt({ name:"AES-GCM", iv:b64u.dec(p.i), additionalData: te.encode(p.d) }, key, b64u.dec(p.c));
+    return td.decode(pt);
+  }
+  const encodeGift = obj => b64u.enc(te.encode(JSON.stringify(obj)));
+  const decodeGift = code => {
+    const raw = code.trim().replace(/^.*#g=/, "");
+    const obj = JSON.parse(td.decode(b64u.dec(raw)));
+    if (!obj || obj.v !== 1 || !obj.d || !obj.c) throw new Error("bad");
+    return obj;
+  };
+  const explorer = addr => "https://xrpscan.com/account/" + encodeURIComponent(addr);
+  const xrplReady = () => typeof window.xrpl !== "undefined" && window.xrpl.Wallet;
+
+  // ---------- XRP Ledger ----------
+  const SERVERS = ["wss://xrplcluster.com", "wss://s1.ripple.com", "wss://s2.ripple.com"];
+  let client = null;
+  async function getClient() {
+    if (!xrplReady()) throw new Error("nolib");
+    if (client && client.isConnected()) return client;
+    for (const url of SERVERS) {
+      try { const c = new xrpl.Client(url, { connectionTimeout: 7000 }); await c.connect(); client = c; return c; } catch {}
+    }
+    throw new Error("offline");
+  }
+  async function ledgerState(addr) {
+    const c = await getClient();
+    const st = await c.request({ command: "server_state" });
+    const vl = st.result.state.validated_ledger;
+    const base = BigInt(vl.reserve_base), inc = BigInt(vl.reserve_inc);
+    try {
+      const ai = await c.request({ command: "account_info", account: addr, ledger_index: "validated" });
+      const d = ai.result.account_data;
+      const bal = BigInt(d.Balance), reserve = base + inc * BigInt(d.OwnerCount || 0);
+      return { exists: true, bal, reserve, spendable: bal > reserve ? bal - reserve : 0n };
+    } catch (e) {
+      const code = e && e.data && e.data.error;
+      if (code === "actNotFound" || /actNotFound|Account not found/i.test(String(e && e.message))) return { exists: false, bal: 0n, reserve: base, spendable: 0n };
+      throw e;
+    }
+  }
+  const xrp = drops => (Number(drops) / 1e6).toLocaleString(undefined, { maximumFractionDigits: 6 });
+
+  function setStatus(el, text, kind) { el.textContent = text; el.className = "status" + (kind ? " " + kind : ""); }
+  async function copy(text, statusEl, label) {
+    try { await navigator.clipboard.writeText(text); setStatus(statusEl, label + " copied.", "ok"); }
+    catch { setStatus(statusEl, "Copy was blocked here. Press and hold the text above to select it.", "err"); }
+  }
+  function show(id) { ["claim","codeBox","setup"].forEach(x => $("#"+x).classList.toggle("hidden", x !== id)); window.scrollTo(0,0); }
+
+  // Chip edge inserts
+  (() => {
+    const g = $("#edges"); const ns = "http://www.w3.org/2000/svg";
+    for (let k = 0; k < 8; k++) {
+      const r = document.createElementNS(ns, "rect");
+      r.setAttribute("x","111"); r.setAttribute("y","4"); r.setAttribute("width","18"); r.setAttribute("height","26"); r.setAttribute("rx","2");
+      r.setAttribute("transform", `rotate(${k*45} 120 120)`);
+      g.appendChild(r);
+    }
+  })();
+
+  // ---------- CLAIM ----------
+  let gift = null;
+  function openGift(obj) {
+    gift = obj;
+    show("claim");
+    const chip = $("#chipSvg");
+    chip.classList.remove("spin"); void chip.getBoundingClientRect(); chip.classList.add("spin");
+    $("#chipTop").textContent = obj.a || "XRP";
+    $("#toLine").textContent = obj.t ? "For " + obj.t : "For you";
+    $("#fromLine").textContent = obj.f ? "from " + obj.f : "";
+    $("#msg").textContent = obj.m || "Happy birthday.";
+    $("#msg").classList.toggle("hidden", !obj.m);
+    $("#hintLine").textContent = obj.h ? "Hint: " + obj.h : "Enter the passphrase you were given.";
+    $("#ledgerLink").href = explorer(obj.d);
+    document.title = obj.t ? "A chip for " + obj.t : "A chip for you";
+    refreshClaimBalance();
+  }
+  let lastState = null;
+  async function refreshClaimBalance() {
+    const el = $("#balLine");
+    el.textContent = "Checking the XRP Ledger…";
+    try {
+      const s = await ledgerState(gift.d);
+      lastState = s;
+      if (!s.exists) el.textContent = "This chip's wallet hasn't been funded yet.";
+      else if (s.spendable <= 20n) el.textContent = "This chip has already been cashed out.";
+      else el.textContent = `Live on the XRP Ledger: ${xrp(s.spendable)} XRP ready to send.`;
+    } catch { el.textContent = "Couldn't reach the XRP Ledger right now. You can still unlock the chip."; }
+  }
+  async function doUnlock() {
+    const pass = $("#pass").value;
+    const st = $("#unlockStatus");
+    if (!pass.trim()) { setStatus(st, "Enter the passphrase first.", "err"); return; }
+    const btn = $("#unlockBtn"); btn.disabled = true; setStatus(st, "Checking…");
+    try {
+      const seed = await unseal(gift, pass);
+      if (xrplReady()) {
+        const addr = xrpl.Wallet.fromSeed(seed).classicAddress;
+        if (addr !== gift.d) throw new Error("mismatch");
+      }
+      unlockedSeed = seed;
+      $("#seedOut").textContent = seed;
+      $("#unlockBox").classList.add("hidden");
+      $("#revealBox").classList.remove("hidden");
+      $("#chipBottom").textContent = "yours";
+      const chip = $("#chipSvg"); chip.classList.remove("spin","flip"); void chip.getBoundingClientRect(); chip.classList.add("flip");
+    } catch {
+      setStatus(st, "That passphrase doesn't open this chip. Check the hint and try again.", "err");
+    } finally { btn.disabled = false; }
+  }
+  $("#unlockBtn").addEventListener("click", doUnlock);
+  $("#pass").addEventListener("keydown", e => { if (e.key === "Enter") doUnlock(); });
+  $("#copySeed").addEventListener("click", () => copy($("#seedOut").textContent, $("#copyStatus"), "Key"));
+
+  // ---------- SEND TO ROBINHOOD ----------
+  let unlockedSeed = null, pending = null;
+  function readDest() {
+    let addr = $("#destIn").value.trim(), tagStr = $("#tagIn").value.trim();
+    if (/^X/.test(addr) && xrpl.isValidXAddress(addr)) {
+      const x = xrpl.xAddressToClassicAddress(addr);
+      addr = x.classicAddress; if (x.tag !== false && !tagStr) tagStr = String(x.tag);
+    }
+    if (!xrpl.isValidClassicAddress(addr)) throw new Error("That address doesn't look right. XRP addresses start with \"r\"; copy it again from Robinhood.");
+    if (addr === gift.d) throw new Error("That's the chip's own address. Paste your Robinhood XRP address instead.");
+    if (!/^\d{1,10}$/.test(tagStr) || Number(tagStr) > 4294967295) throw new Error("Enter the tag Robinhood shows. It's a number with no letters or spaces.");
+    return { addr, tag: Number(tagStr) };
+  }
+  async function buildTx(dest) {
+    const c = await getClient();
+    const w = xrpl.Wallet.fromSeed(unlockedSeed);
+    const s = await ledgerState(w.classicAddress);
+    const tx = await c.autofill({ TransactionType: "Payment", Account: w.classicAddress, Destination: dest.addr, DestinationTag: dest.tag, Amount: "1" });
+    const amt = s.spendable - BigInt(tx.Fee);
+    if (amt <= 0n) throw new Error(s.exists ? "There's nothing left to send. This chip may already have been cashed out." : "This chip's wallet hasn't been funded yet.");
+    tx.Amount = amt.toString();
+    return { w, tx, amt };
+  }
+  $("#reviewBtn").addEventListener("click", async () => {
+    const st = $("#sendStatus"); const btn = $("#reviewBtn");
+    let dest;
+    try { dest = readDest(); } catch (e) { setStatus(st, e.message, "err"); return; }
+    btn.disabled = true; setStatus(st, "Checking the XRP Ledger…");
+    try {
+      const { amt } = await buildTx(dest);
+      pending = dest;
+      $("#confirmText").textContent = `Send ${xrp(amt)} XRP\nto ${dest.addr}\nwith tag ${dest.tag}\n\nMake sure the address and tag match what Robinhood shows. Transfers can't be undone.`;
+      $("#sendForm").classList.add("hidden"); $("#confirmBox").classList.remove("hidden");
+      setStatus(st, "");
+    } catch (e) {
+      setStatus(st, e.message === "offline" || e.message === "nolib" ? "Couldn't reach the XRP Ledger. Check your connection and try again." : e.message, "err");
+    } finally { btn.disabled = false; }
+  });
+  $("#editBtn").addEventListener("click", () => { $("#confirmBox").classList.add("hidden"); $("#sendForm").classList.remove("hidden"); });
+  $("#sendBtn").addEventListener("click", async () => {
+    const st = $("#sendStatus"); const btn = $("#sendBtn");
+    btn.disabled = true; $("#editBtn").disabled = true; setStatus(st, "Sending… this takes a few seconds.");
+    try {
+      const { w, tx, amt } = await buildTx(pending);
+      const signed = w.sign(tx);
+      const res = await client.submitAndWait(signed.tx_blob);
+      const code = res.result.meta && res.result.meta.TransactionResult;
+      if (code !== "tesSUCCESS") throw new Error("The ledger rejected the transfer (" + code + "). Nothing was sent.");
+      $("#confirmBox").classList.add("hidden"); $("#doneBox").classList.remove("hidden");
+      $("#doneText").textContent = `${xrp(amt)} XRP is on its way to your Robinhood account.`;
+      $("#txLink").href = "https://xrpscan.com/tx/" + encodeURIComponent(signed.hash);
+      setStatus(st, "");
+      refreshClaimBalance();
+    } catch (e) {
+      setStatus(st, e.message === "offline" ? "Couldn't reach the XRP Ledger. Nothing was sent; try again." : e.message, "err");
+      btn.disabled = false; $("#editBtn").disabled = false;
+    }
+  });
+
+  // ---------- CODE BOX ----------
+  $("#codeBtn").addEventListener("click", () => {
+    try { openGift(decodeGift($("#codeIn").value)); }
+    catch { setStatus($("#codeStatus"), "That doesn't look like a gift code. Paste the whole chip link or the code after #g=.", "err"); }
+  });
+  $("#toSetup").addEventListener("click", e => { e.preventDefault(); show("setup"); });
+  $("#toCode").addEventListener("click", e => { e.preventDefault(); show("codeBox"); });
+
+  // ---------- SETUP ----------
+  let wallet = null;
+  function setWallet(w) {
+    wallet = { address: w.classicAddress, seed: w.seed };
+    $("#addrOut").textContent = wallet.address;
+    $("#seedBackup").textContent = wallet.seed;
+    $("#walletOut").classList.remove("hidden");
+    const fl = $("#fundLink"); fl.href = explorer(wallet.address); fl.classList.remove("hidden");
+    $("#linkOut").classList.add("hidden");
+  }
+  $("#genBtn").addEventListener("click", () => {
+    if (!xrplReady()) { setStatus($("#genStatus"), "The wallet library didn't load. Check your connection and reload the page.", "err"); return; }
+    if (wallet && !confirm("Replace the current wallet? Only do this if you haven't funded it.")) return;
+    setWallet(xrpl.Wallet.generate("ecdsa-secp256k1"));
+    setStatus($("#genStatus"), "New wallet created.", "ok");
+  });
+  $("#useOwnBtn").addEventListener("click", () => $("#ownSeedBox").classList.toggle("hidden"));
+  $("#loadOwnBtn").addEventListener("click", () => {
+    if (!xrplReady()) { setStatus($("#genStatus"), "The wallet library didn't load. Reload the page.", "err"); return; }
+    try { setWallet(xrpl.Wallet.fromSeed($("#ownSeed").value.trim())); $("#ownSeed").value = ""; setStatus($("#genStatus"), "Key loaded.", "ok"); }
+    catch { setStatus($("#genStatus"), "That isn't a valid family seed. It should start with \"s\".", "err"); }
+  });
+  $("#copyAddr").addEventListener("click", () => copy(wallet.address, $("#genStatus"), "Address"));
+  $("#balBtn").addEventListener("click", async () => {
+    const st = $("#balStatus");
+    if (!wallet) { setStatus(st, "Create or load a wallet in step 1 first.", "err"); return; }
+    setStatus(st, "Checking the XRP Ledger…");
+    try {
+      const s = await ledgerState(wallet.address);
+      if (!s.exists) { setStatus(st, "No XRP yet. Transfers from Robinhood can take a few minutes to arrive.", "err"); return; }
+      const ok = s.spendable >= 1000000n + 20n;
+      setStatus(st, `Balance ${xrp(s.bal)} XRP, of which ${xrp(s.reserve)} is locked reserve. Your friend can receive ${xrp(s.spendable > 12n ? s.spendable - 12n : 0n)} XRP.` + (ok ? "" : " Add a little more for a full 1 XRP."), ok ? "ok" : "err");
+    } catch { setStatus(st, "Couldn't reach the XRP Ledger. Check your connection and try again.", "err"); }
+  });
+
+  $("#baseIn").value = location.href.split("#")[0];
+
+  let built = null;
+  $("#buildBtn").addEventListener("click", async () => {
+    const st = $("#buildStatus");
+    if (!wallet) { setStatus(st, "Create or load a wallet in step 1 first.", "err"); return; }
+    const pass = $("#passIn").value;
+    if (norm(pass).length < 4) { setStatus(st, "Use a passphrase of at least 4 characters.", "err"); return; }
+    const base = $("#baseIn").value.trim().split("#")[0];
+    if (!/^https?:\/\//.test(base)) { setStatus(st, "Page link should start with https://", "err"); return; }
+    const btn = $("#buildBtn"); btn.disabled = true; setStatus(st, "Encrypting…");
+    try {
+      const sealed = await seal(wallet.seed, pass, wallet.address);
+      const obj = { v:1, d:wallet.address, a:$("#amtIn").value.trim() || "XRP",
+        t:$("#toIn").value.trim(), f:$("#fromIn").value.trim(), m:$("#msgIn").value.trim(), h:$("#hintIn").value.trim(), ...sealed };
+      Object.keys(obj).forEach(k => obj[k] === "" && delete obj[k]);
+      // self-test
+      if (await unseal(obj, pass) !== wallet.seed) throw new Error("selftest");
+      const code = encodeGift(obj);
+      const url = base + "#g=" + code;
+      built = { url, code, obj };
+      $("#urlOut").textContent = url;
+      const bytes = te.encode(url).length - 8 + 8; // https:// compresses to 1 byte; ~7 bytes NDEF overhead
+      const tags = [["NTAG213",137],["NTAG215",496],["NTAG216",868]].filter(([,cap]) => bytes <= cap).map(([n]) => n);
+      $("#fitsOut").textContent = `About ${bytes} bytes on the tag. ` + (tags.length ? "Fits: " + tags.join(", ") + "." : "Too long for common tags; shorten the message.");
+      $("#fitsOut").style.color = tags.length ? "" : "var(--err)";
+      $("#linkOut").classList.remove("hidden");
+      setStatus(st, "Chip link built and tested.", "ok");
+      $("#linkOut").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    } catch { setStatus(st, "Couldn't build the link. Try again.", "err"); }
+    finally { btn.disabled = false; }
+  });
+  $("#copyUrl").addEventListener("click", () => copy(built.url, $("#linkStatus"), "Link"));
+  $("#copyCode").addEventListener("click", () => copy(built.code, $("#linkStatus"), "Gift code"));
+  $("#previewBtn").addEventListener("click", () => openGift(built.obj));
+
+  // ---------- ROUTE ----------
+  function route() {
+    const h = location.hash;
+    if (h.startsWith("#g=")) {
+      try { openGift(decodeGift(h)); return; } catch { show("codeBox"); setStatus($("#codeStatus"), "This chip's link looks damaged. Paste the gift code if you have it.", "err"); return; }
+    }
+    show("setup");
+  }
+  route();
+})();
+</script>
+</body>
+</html>
