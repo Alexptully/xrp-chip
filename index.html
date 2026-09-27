@@ -98,10 +98,10 @@ ol.steps{padding-left:1.3em; margin:0 0 1em} ol.steps li{margin-bottom:.55em}
 .stat .s{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums}
 @media (max-width:360px){.stats{grid-template-columns:1fr}}
 details summary{color:var(--muted)}
-.denoms{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
+.denoms{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
 .denoms label{margin:0; font-size:14px}
 .denoms input{margin-top:6px}
-@media (max-width:420px){.denoms{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:360px){.denoms{grid-template-columns:1fr}}
 .chiprow{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px 14px; margin-top:10px}
 .chiprow .t{font-weight:700}
 .chiprow .a{font-family:"JetBrains Mono", ui-monospace, Menlo, monospace; font-size:13px; overflow-wrap:anywhere; color:var(--muted)}
@@ -206,12 +206,12 @@ details summary{color:var(--muted)}
 <!-- ============ SETUP MODE ============ -->
 <div id="setup" class="hidden">
   <h1>Make a set of XRP chips</h1>
-  <p class="muted">One main wallet funds four chips. Each chip gets its own small wallet holding exactly its value, its own passphrase, and its own NFC link, so each one can be claimed once and can never touch the others. Keys are created and encrypted on this device.</p>
+  <p class="muted">One main wallet funds three chips. Each chip gets its own small wallet holding exactly its value, its own passphrase, and its own NFC link, so each one can be claimed once and can never touch the others. Keys are created and encrypted on this device.</p>
   <p class="small"><a href="#" id="toCode">I have a gift code to open</a></p>
 
   <section class="step">
     <h2><span class="n">1</span>Load the main wallet</h2>
-    <p class="small muted">This is the wallet you funded from Robinhood. It pays for all four chips.</p>
+    <p class="small muted">This is the wallet you funded from Robinhood. It pays for all three chips.</p>
     <label for="masterSeed">Main wallet key (starts with "s")</label>
     <input id="masterSeed" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
     <div class="row" style="margin-top:10px"><button id="loadMasterBtn">Load</button><button class="ghost" id="balBtn">Check balance</button></div>
@@ -236,7 +236,6 @@ details summary{color:var(--muted)}
       <label>Chip 1<input class="denomIn" inputmode="decimal" value="1"></label>
       <label>Chip 2<input class="denomIn" inputmode="decimal" value="2"></label>
       <label>Chip 3<input class="denomIn" inputmode="decimal" value="3"></label>
-      <label>Chip 4<input class="denomIn" inputmode="decimal" value="4"></label>
     </div>
     <div class="row" style="margin-top:14px">
       <button id="makeChipsBtn">Create chip wallets</button>
@@ -265,7 +264,7 @@ details summary{color:var(--muted)}
     <label for="fromIn">From</label>
     <input id="fromIn" maxlength="40" placeholder="Alex">
     <label for="msgIn">Message (shown on every chip)</label>
-    <textarea id="msgIn" maxlength="160" placeholder="Happy birthday. Four chips, four tries at luck."></textarea>
+    <textarea id="msgIn" maxlength="160" placeholder="Happy birthday. Three chips, three tries at luck."></textarea>
     <div id="passList"></div>
     <p class="warn small">Each chip needs its own passphrase. Anyone who copies a tag could try guessing its passphrase offline, so a three or four word phrase is far safer than a short PIN.</p>
     <label for="baseIn">Page link</label>
@@ -558,7 +557,7 @@ details summary{color:var(--muted)}
   $("#toSetup").addEventListener("click", e => { e.preventDefault(); show("setup"); });
   $("#toCode").addEventListener("click", e => { e.preventDefault(); show("codeBox"); });
 
-  // ---------- SETUP (four chips from one main wallet) ----------
+  // ---------- SETUP (three chips from one main wallet) ----------
   let master = null;            // { address, seed }
   let chips = [];               // [{ n, denom, drops, address, seed }]
   let backedUp = false;
@@ -635,7 +634,7 @@ details summary{color:var(--muted)}
     chips = denoms.map((d, i) => { const w = xrpl.Wallet.generate("ecdsa-secp256k1"); return { n: i + 1, denom: d.denom, drops: d.drops, address: w.classicAddress, seed: w.seed }; });
     backedUp = false; $("#linkOut").classList.add("hidden");
     renderChips();
-    setStatus(st, "Four chip wallets created. Download the backup next.", "ok");
+    setStatus(st, "Three chip wallets created. Download the backup next.", "ok");
   });
   $("#backupBtn").addEventListener("click", () => {
     const data = { type: "xrp-chip-backup", v: 1, created: new Date().toISOString(), main: mainAddr() || null,
@@ -766,7 +765,7 @@ details summary{color:var(--muted)}
         r.append(cp, pv); row.append(t, u, fit, r, s2); list.appendChild(row);
       }
       $("#linkOut").classList.remove("hidden");
-      setStatus(st, "Four chip links built and tested.", "ok");
+      setStatus(st, "Three chip links built and tested.", "ok");
       $("#linkOut").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     } catch { setStatus(st, "Couldn't build the links. Try again.", "err"); }
     finally { btn.disabled = false; }
