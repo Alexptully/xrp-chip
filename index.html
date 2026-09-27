@@ -44,7 +44,7 @@ a{color:inherit; text-underline-offset:3px}
 
 /* Chip */
 .chip-wrap{display:grid; place-items:center; perspective:900px; margin:8px 0 28px}
-.chip{width:min(78vw,300px); height:auto; transform-style:preserve-3d}
+.chip{width:min(78vw,300px); height:auto; transform-style:preserve-3d; filter:drop-shadow(0 10px 18px rgba(0,0,0,.28))}
 .chip.spin{animation:spin 1.6s cubic-bezier(.2,.7,.2,1) 1}
 .chip.flip{animation:spin 1s cubic-bezier(.3,.6,.2,1) 1}
 @keyframes spin{from{transform:rotateY(-540deg) scale(.85)}to{transform:rotateY(0) scale(1)}}
@@ -90,6 +90,13 @@ ol.steps{padding-left:1.3em; margin:0 0 1em} ol.steps li{margin-bottom:.55em}
 }
 .fits{font-size:14px; margin-top:6px}
 .bal{text-align:center; font-size:15px; color:var(--muted); margin:-10px 0 26px}
+.bal:empty{display:none}
+.stats{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 26px}
+.stat{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px 14px; min-width:0}
+.stat .k{font-size:13px; color:var(--muted)}
+.stat .v{font-size:24px; font-weight:700; line-height:1.2; font-variant-numeric:tabular-nums; overflow-wrap:anywhere}
+.stat .s{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums}
+@media (max-width:360px){.stats{grid-template-columns:1fr}}
 details summary{color:var(--muted)}
 .warn{border-left:3px solid var(--brass); padding:4px 0 4px 14px; margin:14px 0}
 </style>
@@ -101,19 +108,23 @@ details summary{color:var(--muted)}
 <div id="claim" class="hidden">
   <div class="chip-wrap">
     <svg id="chipSvg" class="chip" viewBox="0 0 240 240" role="img" aria-label="Poker chip">
-      <circle cx="120" cy="120" r="116" fill="var(--red)"/>
-      <g id="edges" fill="var(--bone)"></g>
-      <circle cx="120" cy="120" r="84" fill="none" stroke="var(--bone)" stroke-width="2" stroke-dasharray="4 6" opacity=".8"/>
-      <circle cx="120" cy="120" r="74" fill="var(--bone)"/>
-      <circle cx="120" cy="120" r="66" fill="none" stroke="var(--brass)" stroke-width="2"/>
-      <text id="chipTop" x="120" y="112" text-anchor="middle" class="chip-name" font-size="34" fill="var(--red)">1 XRP</text>
-      <text id="chipBottom" x="120" y="140" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-size="13" font-weight="600" fill="#3a3a3a" letter-spacing="1">locked</text>
+      <circle cx="120" cy="120" r="115" fill="#f8f7f3" stroke="#141414" stroke-width="2"/>
+      <g id="edges" fill="#141414"></g>
+      <circle cx="120" cy="120" r="84" fill="none" stroke="#141414" stroke-width="2" stroke-dasharray="4 6"/>
+      <circle cx="120" cy="120" r="74" fill="#ffffff" stroke="#141414" stroke-width="1.5"/>
+      <circle cx="120" cy="120" r="66" fill="none" stroke="#141414" stroke-width="3"/>
+      <text id="chipTop" x="120" y="112" text-anchor="middle" class="chip-name" font-size="34" fill="#141414">1 XRP</text>
+      <text id="chipBottom" x="120" y="140" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-size="13" font-weight="600" fill="#555" letter-spacing="1">locked</text>
     </svg>
   </div>
   <h1 class="to" id="toLine">For you</h1>
   <p class="from" id="fromLine"></p>
   <div class="note" id="msg"></div>
-  <p class="bal" id="balLine">Checking the XRP Ledger…</p>
+  <div class="stats">
+    <div class="stat"><div class="k">1 XRP right now</div><div class="v" id="cPx">…</div><div class="s" id="cPxSub">&nbsp;</div></div>
+    <div class="stat"><div class="k">Whole wallet</div><div class="v" id="cWal">…</div><div class="s" id="cWalSub">&nbsp;</div></div>
+  </div>
+  <p class="bal" id="balLine"></p>
 
   <section id="unlockBox">
     <h2>Unlock your chip</h2>
@@ -213,6 +224,12 @@ details summary{color:var(--muted)}
     <p>The wallet needs <strong>at least 2.1 XRP</strong> for your friend to receive a full 1 XRP in Robinhood. The first 1 XRP stays locked as the ledger's reserve and can't be sent. If Robinhood asks for a destination tag when you send, pick the option for no tag; a personal wallet doesn't use one.</p>
     <div class="row"><button class="ghost" id="balBtn">Check balance</button></div>
     <div class="status" id="balStatus" role="status"></div>
+    <div id="setupStats" class="hidden" style="margin-top:14px">
+  <div class="stats">
+    <div class="stat"><div class="k">1 XRP right now</div><div class="v" id="sPx">…</div><div class="s" id="sPxSub">&nbsp;</div></div>
+    <div class="stat"><div class="k">Whole wallet</div><div class="v" id="sWal">…</div><div class="s" id="sWalSub">&nbsp;</div></div>
+  </div>
+    </div>
     <p class="small"><a id="fundLink" target="_blank" rel="noopener" class="hidden">View on xrpscan.com</a></p>
   </section>
 
@@ -326,6 +343,41 @@ details summary{color:var(--muted)}
   }
   const xrp = drops => (Number(drops) / 1e6).toLocaleString(undefined, { maximumFractionDigits: 6 });
 
+  // ---------- Price ----------
+  let priceCache = null;
+  async function getPrice() {
+    if (priceCache && Date.now() - priceCache.at < 60000) return priceCache.usd;
+    const sources = [
+      async () => { const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ripple&vs_currencies=usd"); const j = await r.json(); return Number(j.ripple.usd); },
+      async () => { const r = await fetch("https://api.coinbase.com/v2/prices/XRP-USD/spot"); const j = await r.json(); return Number(j.data.amount); }
+    ];
+    for (const src of sources) {
+      try { const usd = await src(); if (usd > 0) { priceCache = { usd, at: Date.now() }; return usd; } } catch {}
+    }
+    throw new Error("noprice");
+  }
+  const usd = n => n.toLocaleString(undefined, { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: n < 1 ? 4 : 2 });
+  const usdOf = (drops, price) => usd(Number(drops) / 1e6 * price);
+  const timeNow = () => new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+  // Fill a pair of stat cards (prefix "c" = claim page, "s" = setup)
+  async function fillStats(pre, addr) {
+    const [st, pr] = await Promise.allSettled([ledgerState(addr), getPrice()]);
+    const price = pr.status === "fulfilled" ? pr.value : null;
+    $("#" + pre + "Px").textContent = price ? usd(price) : "Unavailable";
+    $("#" + pre + "PxSub").textContent = price ? "Updated " + timeNow() : "Price service didn't respond";
+    if (st.status !== "fulfilled") {
+      $("#" + pre + "Wal").textContent = "—"; $("#" + pre + "WalSub").textContent = "Ledger unreachable";
+      return { state: null, price };
+    }
+    const s = st.value;
+    $("#" + pre + "Wal").textContent = price ? usdOf(s.bal, price) : xrp(s.bal) + " XRP";
+    $("#" + pre + "WalSub").textContent = s.exists
+      ? `${xrp(s.bal)} XRP · ${xrp(s.spendable)} sendable`
+      : "Not funded yet";
+    return { state: s, price };
+  }
+
   function setStatus(el, text, kind) { el.textContent = text; el.className = "status" + (kind ? " " + kind : ""); }
   async function copy(text, statusEl, label) {
     try { await navigator.clipboard.writeText(text); setStatus(statusEl, label + " copied.", "ok"); }
@@ -360,18 +412,18 @@ details summary{color:var(--muted)}
     $("#ledgerLink").href = explorer(obj.d);
     document.title = obj.t ? "A chip for " + obj.t : "A chip for you";
     refreshClaimBalance();
+    clearInterval(window.__chipTimer);
+    window.__chipTimer = setInterval(() => { if (!document.hidden) refreshClaimBalance(); }, 60000);
   }
   let lastState = null;
   async function refreshClaimBalance() {
     const el = $("#balLine");
-    el.textContent = "Checking the XRP Ledger…";
-    try {
-      const s = await ledgerState(gift.d);
-      lastState = s;
-      if (!s.exists) el.textContent = "This chip's wallet hasn't been funded yet.";
-      else if (s.spendable <= 20n) el.textContent = "This chip has already been cashed out.";
-      else el.textContent = `Live on the XRP Ledger: ${xrp(s.spendable)} XRP ready to send.`;
-    } catch { el.textContent = "Couldn't reach the XRP Ledger right now. You can still unlock the chip."; }
+    const { state: s } = await fillStats("c", gift.d);
+    lastState = s;
+    if (!s) el.textContent = "Couldn't reach the XRP Ledger right now. You can still unlock the chip.";
+    else if (!s.exists) el.textContent = "This chip's wallet hasn't been funded yet.";
+    else if (s.spendable <= 20n) el.textContent = "This chip has already been cashed out.";
+    else el.textContent = "";
   }
   async function doUnlock() {
     const pass = $("#pass").value;
@@ -429,7 +481,8 @@ details summary{color:var(--muted)}
     try {
       const { amt } = await buildTx(dest);
       pending = dest;
-      $("#confirmText").textContent = `Send ${xrp(amt)} XRP\nto ${dest.addr}\nwith tag ${dest.tag}\n\nMake sure the address and tag match what Robinhood shows. Transfers can't be undone.`;
+      let price = null; try { price = await getPrice(); } catch {}
+      $("#confirmText").textContent = `Send ${xrp(amt)} XRP${price ? " (about " + usdOf(amt, price) + ")" : ""}\nto ${dest.addr}\nwith tag ${dest.tag}\n\nMake sure the address and tag match what Robinhood shows. Transfers can't be undone.`;
       $("#sendForm").classList.add("hidden"); $("#confirmBox").classList.remove("hidden");
       setStatus(st, "");
     } catch (e) {
@@ -447,7 +500,8 @@ details summary{color:var(--muted)}
       const code = res.result.meta && res.result.meta.TransactionResult;
       if (code !== "tesSUCCESS") throw new Error("The ledger rejected the transfer (" + code + "). Nothing was sent.");
       $("#confirmBox").classList.add("hidden"); $("#doneBox").classList.remove("hidden");
-      $("#doneText").textContent = `${xrp(amt)} XRP is on its way to your Robinhood account.`;
+      let price = null; try { price = await getPrice(); } catch {}
+      $("#doneText").textContent = `${xrp(amt)} XRP${price ? " (about " + usdOf(amt, price) + ")" : ""} is on its way to your Robinhood account.`;
       $("#txLink").href = "https://xrpscan.com/tx/" + encodeURIComponent(signed.hash);
       setStatus(st, "");
       refreshClaimBalance();
@@ -492,8 +546,10 @@ details summary{color:var(--muted)}
     const st = $("#balStatus");
     if (!wallet) { setStatus(st, "Create or load a wallet in step 1 first.", "err"); return; }
     setStatus(st, "Checking the XRP Ledger…");
+    $("#setupStats").classList.remove("hidden");
     try {
-      const s = await ledgerState(wallet.address);
+      const { state: s } = await fillStats("s", wallet.address);
+      if (!s) throw new Error("offline");
       if (!s.exists) { setStatus(st, "No XRP yet. Transfers from Robinhood can take a few minutes to arrive.", "err"); return; }
       const ok = s.spendable >= 1000000n + 20n;
       setStatus(st, `Balance ${xrp(s.bal)} XRP, of which ${xrp(s.reserve)} is locked reserve. Your friend can receive ${xrp(s.spendable > 12n ? s.spendable - 12n : 0n)} XRP.` + (ok ? "" : " Add a little more for a full 1 XRP."), ok ? "ok" : "err");
