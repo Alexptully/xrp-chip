@@ -98,6 +98,17 @@ ol.steps{padding-left:1.3em; margin:0 0 1em} ol.steps li{margin-bottom:.55em}
 .stat .s{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums}
 @media (max-width:360px){.stats{grid-template-columns:1fr}}
 details summary{color:var(--muted)}
+.denoms{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
+.denoms label{margin:0; font-size:14px}
+.denoms input{margin-top:6px}
+@media (max-width:420px){.denoms{grid-template-columns:repeat(2,1fr)}}
+.chiprow{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px 14px; margin-top:10px}
+.chiprow .t{font-weight:700}
+.chiprow .a{font-family:"JetBrains Mono", ui-monospace, Menlo, monospace; font-size:13px; overflow-wrap:anywhere; color:var(--muted)}
+.chiprow .st{font-size:14px; margin-top:4px}
+.ghostfile{display:inline-block; margin:0; font-weight:600; cursor:pointer; border-radius:999px; padding:11px 20px; border:2px solid var(--line)}
+.check{display:flex; gap:10px; align-items:flex-start; font-weight:400; font-size:15px}
+.check input{width:auto; margin-top:4px}
 .warn{border-left:3px solid var(--brass); padding:4px 0 4px 14px; margin:14px 0}
 </style>
 </head>
@@ -122,7 +133,7 @@ details summary{color:var(--muted)}
   <div class="note" id="msg"></div>
   <div class="stats">
     <div class="stat"><div class="k">1 XRP right now</div><div class="v" id="cPx">…</div><div class="s" id="cPxSub">&nbsp;</div></div>
-    <div class="stat"><div class="k">Whole wallet</div><div class="v" id="cWal">…</div><div class="s" id="cWalSub">&nbsp;</div></div>
+    <div class="stat"><div class="k" id="cWalK">Whole wallet</div><div class="v" id="cWal">…</div><div class="s" id="cWalSub">&nbsp;</div></div>
   </div>
   <p class="bal" id="balLine"></p>
 
@@ -175,6 +186,7 @@ details summary{color:var(--muted)}
     </details>
   </section>
 
+  <p class="small" id="backSetupWrap"><a href="#" id="backSetup">← Back to setup</a></p>
   <section>
     <p class="small"><a id="ledgerLink" target="_blank" rel="noopener">See this wallet on the XRP Ledger</a> <span class="muted">(opens xrpscan.com)</span></p>
   </section>
@@ -193,83 +205,83 @@ details summary{color:var(--muted)}
 
 <!-- ============ SETUP MODE ============ -->
 <div id="setup" class="hidden">
-  <h1>Put XRP in a poker chip</h1>
-  <p class="muted">Make a wallet, fund it, lock its key with a passphrase, and write the link to an NFC tag. The key is created and encrypted on this device and never sent anywhere.</p>
+  <h1>Make a set of XRP chips</h1>
+  <p class="muted">One main wallet funds four chips. Each chip gets its own small wallet holding exactly its value, its own passphrase, and its own NFC link, so each one can be claimed once and can never touch the others. Keys are created and encrypted on this device.</p>
   <p class="small"><a href="#" id="toCode">I have a gift code to open</a></p>
 
   <section class="step">
-    <h2><span class="n">1</span>Create the wallet</h2>
-    <div class="row">
-      <button id="genBtn">Generate a new wallet</button>
-      <button class="ghost" id="useOwnBtn">Use a key I already have</button>
-    </div>
-    <div id="ownSeedBox" class="hidden">
-      <label for="ownSeed">Family seed (starts with "s")</label>
-      <input id="ownSeed" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="row" style="margin-top:10px"><button class="ghost" id="loadOwnBtn">Load key</button></div>
-    </div>
+    <h2><span class="n">1</span>Load the main wallet</h2>
+    <p class="small muted">This is the wallet you funded from Robinhood. It pays for all four chips.</p>
+    <label for="masterSeed">Main wallet key (starts with "s")</label>
+    <input id="masterSeed" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div class="row" style="margin-top:10px"><button id="loadMasterBtn">Load</button><button class="ghost" id="balBtn">Check balance</button></div>
     <div class="status" id="genStatus" role="status"></div>
     <div id="walletOut" class="hidden">
-      <label>Wallet address (safe to share)</label>
+      <label>Main wallet address</label>
       <div class="key" id="addrOut"></div>
-      <div class="row"><button class="ghost" id="copyAddr">Copy address</button></div>
-      <label style="margin-top:18px">Secret key (back this up)</label>
-      <div class="key" id="seedBackup"></div>
-      <p class="warn small">Write this key down and keep it until your friend has claimed the gift. If the chip is lost or the passphrase forgotten, this is the only way to recover the funds.</p>
     </div>
-  </section>
-
-  <section class="step">
-    <h2><span class="n">2</span>Fund it from Robinhood</h2>
-    <p>The wallet needs <strong>at least 2.1 XRP</strong> for your friend to receive a full 1 XRP in Robinhood. The first 1 XRP stays locked as the ledger's reserve and can't be sent. If Robinhood asks for a destination tag when you send, pick the option for no tag; a personal wallet doesn't use one.</p>
-    <div class="row"><button class="ghost" id="balBtn">Check balance</button></div>
     <div class="status" id="balStatus" role="status"></div>
     <div id="setupStats" class="hidden" style="margin-top:14px">
   <div class="stats">
     <div class="stat"><div class="k">1 XRP right now</div><div class="v" id="sPx">…</div><div class="s" id="sPxSub">&nbsp;</div></div>
-    <div class="stat"><div class="k">Whole wallet</div><div class="v" id="sWal">…</div><div class="s" id="sWalSub">&nbsp;</div></div>
+    <div class="stat"><div class="k">Main wallet</div><div class="v" id="sWal">…</div><div class="s" id="sWalSub">&nbsp;</div></div>
   </div>
     </div>
-    <p class="small"><a id="fundLink" target="_blank" rel="noopener" class="hidden">View on xrpscan.com</a></p>
   </section>
 
   <section class="step">
-    <h2><span class="n">3</span>Write the card and set a passphrase</h2>
+    <h2><span class="n">2</span>Create the chip wallets</h2>
+    <p class="small muted">Chip values in XRP.</p>
+    <div class="denoms">
+      <label>Chip 1<input class="denomIn" inputmode="decimal" value="1"></label>
+      <label>Chip 2<input class="denomIn" inputmode="decimal" value="2"></label>
+      <label>Chip 3<input class="denomIn" inputmode="decimal" value="3"></label>
+      <label>Chip 4<input class="denomIn" inputmode="decimal" value="4"></label>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="makeChipsBtn">Create chip wallets</button>
+      <label class="ghostfile">Restore from backup<input type="file" id="restoreIn" accept="application/json,.json" class="hidden"></label>
+    </div>
+    <div class="status" id="chipStatus" role="status"></div>
+    <div id="chipList"></div>
+    <div id="backupBox" class="hidden">
+      <p class="warn small">Download the backup before funding. It holds every chip's key. If this page is closed before the links are written, the backup is the only way to get the chips back, and it's how you recover a chip that's lost or never claimed. Keep it private.</p>
+      <div class="row"><button class="ghost" id="backupBtn">Download backup</button></div>
+    </div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">3</span>Fund the chips</h2>
+    <p id="needText" class="small">Create the chip wallets first.</p>
+    <label class="check"><input type="checkbox" id="returnChk" checked> After a chip is claimed, send its locked reserve back to the main wallet</label>
+    <div class="row" style="margin-top:12px"><button id="fundBtn" disabled>Fund all chips</button></div>
+    <div class="status" id="fundStatus" role="status"></div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">4</span>Write the card and passphrases</h2>
     <label for="toIn">Friend's name</label>
     <input id="toIn" maxlength="40" placeholder="Sam">
     <label for="fromIn">From</label>
     <input id="fromIn" maxlength="40" placeholder="Alex">
-    <label for="amtIn">What the chip says</label>
-    <input id="amtIn" maxlength="12" value="1 XRP">
-    <label for="msgIn">Message</label>
-    <textarea id="msgIn" maxlength="200" placeholder="Happy birthday. Don't spend it all in one place."></textarea>
-    <label for="passIn">Passphrase</label>
-    <input id="passIn" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="three or four words only they'd know">
-    <label for="hintIn">Hint shown on the page</label>
-    <input id="hintIn" maxlength="80" placeholder="Where we met, all lowercase">
-    <p class="warn small">Someone who copies the tag could try guessing the passphrase offline. A 4-digit PIN falls in minutes; a three or four word phrase is out of reach. For a few dollars either is fine, just know the trade.</p>
+    <label for="msgIn">Message (shown on every chip)</label>
+    <textarea id="msgIn" maxlength="160" placeholder="Happy birthday. Four chips, four tries at luck."></textarea>
+    <div id="passList"></div>
+    <p class="warn small">Each chip needs its own passphrase. Anyone who copies a tag could try guessing its passphrase offline, so a three or four word phrase is far safer than a short PIN.</p>
     <label for="baseIn">Page link</label>
     <input id="baseIn" spellcheck="false">
-    <p class="small muted" style="margin-top:6px">This page's web address. On GitHub Pages it fills itself in; only change it if you move the page.</p>
-    <div class="row" style="margin-top:14px"><button id="buildBtn">Build chip link</button></div>
+    <p class="small muted" style="margin-top:6px">This page's web address. On GitHub Pages it fills itself in.</p>
+    <div class="row" style="margin-top:14px"><button id="buildBtn">Build chip links</button></div>
     <div class="status" id="buildStatus" role="status"></div>
   </section>
 
   <section class="step hidden" id="linkOut">
-    <h2><span class="n">4</span>Write it to the tag</h2>
-    <label>Chip link</label>
-    <div class="key" id="urlOut"></div>
-    <p class="fits" id="fitsOut"></p>
-    <div class="row">
-      <button class="ghost" id="copyUrl">Copy link</button>
-      <button class="ghost" id="copyCode">Copy gift code only</button>
-      <button class="ghost" id="previewBtn">Preview as friend</button>
-    </div>
-    <div class="status" id="linkStatus" role="status"></div>
+    <h2><span class="n">5</span>Write each tag</h2>
+    <div id="linkList"></div>
     <ol class="steps" style="margin-top:16px">
-      <li>In NFC Tools (iOS or Android), choose <strong>Write</strong>, add a <strong>URL</strong> record, and paste the chip link.</li>
-      <li>Write it to the tag, then tap the tag with a phone to test that the gift page opens and the passphrase works.</li>
-      <li>Once it works, use <strong>Other → Lock tag</strong> so nobody can overwrite it. Locking is permanent.</li>
+      <li>In NFC Tools, choose <strong>Write</strong>, add a <strong>URL</strong> record, and paste one chip's link. Write it to that chip's tag.</li>
+      <li>Label the tags as you go so each link ends up in the chip with the matching value.</li>
+      <li>Tap each chip to test it, then use <strong>Other → Lock tag</strong>. Locking is permanent.</li>
     </ol>
   </section>
 </div>
@@ -411,6 +423,12 @@ details summary{color:var(--muted)}
     $("#hintLine").textContent = obj.h ? "Hint: " + obj.h : "Enter the passphrase you were given.";
     $("#ledgerLink").href = explorer(obj.d);
     document.title = obj.t ? "A chip for " + obj.t : "A chip for you";
+    $("#backSetupWrap").classList.toggle("hidden", !location.hash.startsWith("#g=") ? false : true);
+    // reset claim view for each opened chip
+    $("#unlockBox").classList.remove("hidden"); $("#revealBox").classList.add("hidden");
+    $("#sendForm").classList.remove("hidden"); $("#confirmBox").classList.add("hidden"); $("#doneBox").classList.add("hidden");
+    $("#pass").value = ""; setStatus($("#unlockStatus"), ""); setStatus($("#sendStatus"), "");
+    $("#chipBottom").textContent = "locked"; $("#cWalK").textContent = "Whole wallet";
     refreshClaimBalance();
     clearInterval(window.__chipTimer);
     window.__chipTimer = setInterval(() => { if (!document.hidden) refreshClaimBalance(); }, 60000);
@@ -418,11 +436,17 @@ details summary{color:var(--muted)}
   let lastState = null;
   async function refreshClaimBalance() {
     const el = $("#balLine");
-    const { state: s } = await fillStats("c", gift.d);
+    const { state: s, price } = await fillStats("c", gift.d);
     lastState = s;
+    const need = gift.x ? BigInt(gift.x) : 1n;
+    const claimed = s && (!s.exists || s.spendable < need);
+    if (gift.x) {
+      $("#cWalK").textContent = "This chip is worth";
+      $("#cWal").textContent = price ? usdOf(gift.x, price) : xrp(gift.x) + " XRP";
+      $("#cWalSub").textContent = xrp(gift.x) + " XRP · " + (!s ? "status unknown" : claimed ? "already claimed" : "unclaimed");
+    }
     if (!s) el.textContent = "Couldn't reach the XRP Ledger right now. You can still unlock the chip.";
-    else if (!s.exists) el.textContent = "This chip's wallet hasn't been funded yet.";
-    else if (s.spendable <= 20n) el.textContent = "This chip has already been cashed out.";
+    else if (claimed) el.textContent = gift.x ? "This chip has already been claimed." : (!s.exists ? "This chip's wallet is empty." : "This chip has already been cashed out.");
     else el.textContent = "";
   }
   async function doUnlock() {
@@ -463,13 +487,28 @@ details summary{color:var(--muted)}
     if (!/^\d{1,10}$/.test(tagStr) || Number(tagStr) > 4294967295) throw new Error("Enter the tag Robinhood shows. It's a number with no letters or spaces.");
     return { addr, tag: Number(tagStr) };
   }
+  // After a fixed-amount claim, close the chip's wallet and send its locked reserve back to the owner's main wallet.
+  // Best effort: if it fails (for example the wallet is too new), the owner can recover it later with the backup key.
+  async function returnLeftover(w) {
+    if (!gift.r || !gift.x) return;
+    try {
+      const tx = await client.autofill({ TransactionType: "AccountDelete", Account: w.classicAddress, Destination: gift.r });
+      await client.submitAndWait(w.sign(tx).tx_blob);
+    } catch {}
+  }
   async function buildTx(dest) {
     const c = await getClient();
     const w = xrpl.Wallet.fromSeed(unlockedSeed);
     const s = await ledgerState(w.classicAddress);
     const tx = await c.autofill({ TransactionType: "Payment", Account: w.classicAddress, Destination: dest.addr, DestinationTag: dest.tag, Amount: "1" });
-    const amt = s.spendable - BigInt(tx.Fee);
-    if (amt <= 0n) throw new Error(s.exists ? "There's nothing left to send. This chip may already have been cashed out." : "This chip's wallet hasn't been funded yet.");
+    let amt;
+    if (gift.x) {
+      amt = BigInt(gift.x);
+      if (!s.exists || s.spendable < amt + BigInt(tx.Fee)) throw new Error("This chip has already been claimed.");
+    } else {
+      amt = s.spendable - BigInt(tx.Fee);
+      if (amt <= 0n) throw new Error(s.exists ? "There's nothing left to send. This chip may already have been cashed out." : "This chip's wallet is empty.");
+    }
     tx.Amount = amt.toString();
     return { w, tx, amt };
   }
@@ -504,7 +543,7 @@ details summary{color:var(--muted)}
       $("#doneText").textContent = `${xrp(amt)} XRP${price ? " (about " + usdOf(amt, price) + ")" : ""} is on its way to your Robinhood account.`;
       $("#txLink").href = "https://xrpscan.com/tx/" + encodeURIComponent(signed.hash);
       setStatus(st, "");
-      refreshClaimBalance();
+      returnLeftover(w).finally(refreshClaimBalance);
     } catch (e) {
       setStatus(st, e.message === "offline" ? "Couldn't reach the XRP Ledger. Nothing was sent; try again." : e.message, "err");
       btn.disabled = false; $("#editBtn").disabled = false;
@@ -519,78 +558,221 @@ details summary{color:var(--muted)}
   $("#toSetup").addEventListener("click", e => { e.preventDefault(); show("setup"); });
   $("#toCode").addEventListener("click", e => { e.preventDefault(); show("codeBox"); });
 
-  // ---------- SETUP ----------
-  let wallet = null;
-  function setWallet(w) {
-    wallet = { address: w.classicAddress, seed: w.seed };
-    $("#addrOut").textContent = wallet.address;
-    $("#seedBackup").textContent = wallet.seed;
-    $("#walletOut").classList.remove("hidden");
-    const fl = $("#fundLink"); fl.href = explorer(wallet.address); fl.classList.remove("hidden");
-    $("#linkOut").classList.add("hidden");
+  // ---------- SETUP (four chips from one main wallet) ----------
+  let master = null;            // { address, seed }
+  let chips = [];               // [{ n, denom, drops, address, seed }]
+  let backedUp = false;
+  let backupMaster = null;      // main address remembered from a restored backup
+  const FEE_BUFFER = 1000n;     // drops left in each chip to pay the claim fee
+  const PAY_FEE = 12n;
+
+  const toDrops = v => {
+    const t = String(v).trim();
+    if (!/^\d+(\.\d{1,6})?$/.test(t) || Number(t) <= 0) throw new Error("bad");
+    return BigInt(xrpl.xrpToDrops(t));
+  };
+  async function getReserve() {
+    const c = await getClient();
+    const st = await c.request({ command: "server_state" });
+    return BigInt(st.result.state.validated_ledger.reserve_base);
   }
-  $("#genBtn").addEventListener("click", () => {
-    if (!xrplReady()) { setStatus($("#genStatus"), "The wallet library didn't load. Check your connection and reload the page.", "err"); return; }
-    if (wallet && !confirm("Replace the current wallet? Only do this if you haven't funded it.")) return;
-    setWallet(xrpl.Wallet.generate("ecdsa-secp256k1"));
-    setStatus($("#genStatus"), "New wallet created.", "ok");
-  });
-  $("#useOwnBtn").addEventListener("click", () => $("#ownSeedBox").classList.toggle("hidden"));
-  $("#loadOwnBtn").addEventListener("click", () => {
-    if (!xrplReady()) { setStatus($("#genStatus"), "The wallet library didn't load. Reload the page.", "err"); return; }
-    try { setWallet(xrpl.Wallet.fromSeed($("#ownSeed").value.trim())); $("#ownSeed").value = ""; setStatus($("#genStatus"), "Key loaded.", "ok"); }
-    catch { setStatus($("#genStatus"), "That isn't a valid family seed. It should start with \"s\".", "err"); }
-  });
-  $("#copyAddr").addEventListener("click", () => copy(wallet.address, $("#genStatus"), "Address"));
-  $("#balBtn").addEventListener("click", async () => {
-    const st = $("#balStatus");
-    if (!wallet) { setStatus(st, "Create or load a wallet in step 1 first.", "err"); return; }
-    setStatus(st, "Checking the XRP Ledger…");
-    $("#setupStats").classList.remove("hidden");
+  const mainAddr = () => (master && master.address) || backupMaster;
+
+  $("#loadMasterBtn").addEventListener("click", () => {
+    const st = $("#genStatus");
+    if (!xrplReady()) { setStatus(st, "The wallet library didn't load. Reload the page.", "err"); return; }
     try {
-      const { state: s } = await fillStats("s", wallet.address);
-      if (!s) throw new Error("offline");
-      if (!s.exists) { setStatus(st, "No XRP yet. Transfers from Robinhood can take a few minutes to arrive.", "err"); return; }
-      const ok = s.spendable >= 1000000n + 20n;
-      setStatus(st, `Balance ${xrp(s.bal)} XRP, of which ${xrp(s.reserve)} is locked reserve. Your friend can receive ${xrp(s.spendable > 12n ? s.spendable - 12n : 0n)} XRP.` + (ok ? "" : " Add a little more for a full 1 XRP."), ok ? "ok" : "err");
-    } catch { setStatus(st, "Couldn't reach the XRP Ledger. Check your connection and try again.", "err"); }
+      const w = xrpl.Wallet.fromSeed($("#masterSeed").value.trim());
+      master = { address: w.classicAddress, seed: w.seed };
+      $("#masterSeed").value = "";
+      $("#addrOut").textContent = master.address;
+      $("#walletOut").classList.remove("hidden");
+      setStatus(st, "Main wallet loaded.", "ok");
+      checkMaster(); updateNeed();
+    } catch { setStatus(st, "That isn't a valid wallet key. It should start with \"s\".", "err"); }
+  });
+  async function checkMaster() {
+    const st = $("#balStatus");
+    if (!master) { setStatus(st, "Load the main wallet first.", "err"); return; }
+    $("#setupStats").classList.remove("hidden");
+    setStatus(st, "Checking the XRP Ledger…");
+    const { state: s } = await fillStats("s", master.address);
+    if (!s) setStatus(st, "Couldn't reach the XRP Ledger. Check your connection and try again.", "err");
+    else if (!s.exists) setStatus(st, "This wallet has no XRP yet.", "err");
+    else setStatus(st, `${xrp(s.spendable)} XRP available to fund chips (${xrp(s.reserve)} stays locked as this wallet's reserve).`, "ok");
+  }
+  $("#balBtn").addEventListener("click", checkMaster);
+
+  // Chips
+  function renderChips() {
+    const list = $("#chipList"); list.innerHTML = "";
+    chips.forEach(c => {
+      const row = document.createElement("div"); row.className = "chiprow";
+      const t = document.createElement("div"); t.className = "t"; t.textContent = `Chip ${c.n} · ${c.denom} XRP`;
+      const a = document.createElement("div"); a.className = "a"; a.textContent = c.address;
+      const st = document.createElement("div"); st.className = "st muted"; st.id = "chipSt" + c.n; st.textContent = "Not funded yet";
+      row.append(t, a, st); list.appendChild(row);
+    });
+    $("#backupBox").classList.toggle("hidden", !chips.length);
+    renderPassList(); updateNeed();
+  }
+  function renderPassList() {
+    const box = $("#passList"); box.innerHTML = "";
+    chips.forEach(c => {
+      const wrap = document.createElement("div");
+      wrap.innerHTML = `<label>Chip ${c.n} (${c.denom} XRP) passphrase</label><input class="passIn" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <label style="font-weight:400;font-size:15px">Hint for chip ${c.n}</label><input class="hintIn" maxlength="80">`;
+      box.appendChild(wrap);
+    });
+  }
+  $("#makeChipsBtn").addEventListener("click", () => {
+    const st = $("#chipStatus");
+    if (!xrplReady()) { setStatus(st, "The wallet library didn't load. Reload the page.", "err"); return; }
+    let denoms;
+    try { denoms = [...document.querySelectorAll(".denomIn")].map(i => ({ denom: i.value.trim(), drops: toDrops(i.value) })); }
+    catch { setStatus(st, "Each chip value must be a positive number of XRP, like 1 or 2.5.", "err"); return; }
+    if (chips.length && !confirm("Replace the current chip wallets? Only do this if you haven't funded them.")) return;
+    chips = denoms.map((d, i) => { const w = xrpl.Wallet.generate("ecdsa-secp256k1"); return { n: i + 1, denom: d.denom, drops: d.drops, address: w.classicAddress, seed: w.seed }; });
+    backedUp = false; $("#linkOut").classList.add("hidden");
+    renderChips();
+    setStatus(st, "Four chip wallets created. Download the backup next.", "ok");
+  });
+  $("#backupBtn").addEventListener("click", () => {
+    const data = { type: "xrp-chip-backup", v: 1, created: new Date().toISOString(), main: mainAddr() || null,
+      chips: chips.map(c => ({ n: c.n, denom: c.denom, address: c.address, seed: c.seed })) };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "xrp-chips-backup.json";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    backedUp = true; updateNeed();
+    setStatus($("#chipStatus"), "Backup downloaded. Keep it somewhere private.", "ok");
+  });
+  $("#restoreIn").addEventListener("change", async e => {
+    const st = $("#chipStatus"); const f = e.target.files[0]; if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (data.type !== "xrp-chip-backup") throw 0;
+      chips = data.chips.map(c => {
+        const w = xrpl.Wallet.fromSeed(c.seed);
+        if (w.classicAddress !== c.address) throw 0;
+        return { n: c.n, denom: String(c.denom), drops: toDrops(c.denom), address: c.address, seed: c.seed };
+      });
+      backupMaster = data.main || null;
+      document.querySelectorAll(".denomIn").forEach((i, k) => { if (chips[k]) i.value = chips[k].denom; });
+      backedUp = true; renderChips(); refreshChipStatus();
+      setStatus(st, "Chips restored from backup.", "ok");
+    } catch { setStatus(st, "That file isn't a valid chip backup.", "err"); }
+    e.target.value = "";
   });
 
-  $("#baseIn").value = location.href.split("#")[0];
+  async function updateNeed() {
+    const el = $("#needText");
+    $("#fundBtn").disabled = !(master && chips.length && backedUp);
+    if (!chips.length) { el.textContent = "Create the chip wallets first."; return; }
+    const values = chips.reduce((t, c) => t + c.drops, 0n);
+    try {
+      const reserve = await getReserve();
+      const total = values + BigInt(chips.length) * (reserve + FEE_BUFFER + PAY_FEE);
+      el.textContent = `The main wallet needs about ${xrp(total)} XRP available: ${xrp(values)} XRP for the chip values plus ${xrp(reserve)} XRP of locked reserve for each chip, which comes back to the main wallet after each chip is claimed if the box below is checked.` +
+        (!master ? " Load the main wallet in step 1." : !backedUp ? " Download the backup in step 2 to continue." : "");
+    } catch {
+      el.textContent = `Chip values total ${xrp(values)} XRP, plus about 1 XRP of reserve per chip. (Couldn't reach the ledger for exact numbers.)`;
+    }
+  }
+  async function refreshChipStatus() {
+    let reserve; try { reserve = await getReserve(); } catch { return; }
+    for (const c of chips) {
+      const el = $("#chipSt" + c.n); if (!el) continue;
+      try {
+        const s = await ledgerState(c.address);
+        const target = c.drops + reserve + FEE_BUFFER;
+        if (!s.exists) { el.textContent = "Not funded yet"; el.className = "st muted"; }
+        else if (s.bal >= target) { el.textContent = `Funded · ${xrp(s.bal)} XRP`; el.className = "st status ok"; }
+        else { el.textContent = `Partly funded · ${xrp(s.bal)} XRP`; el.className = "st status err"; }
+      } catch {}
+    }
+  }
 
-  let built = null;
+  $("#fundBtn").addEventListener("click", async () => {
+    const st = $("#fundStatus"); const btn = $("#fundBtn");
+    if (!master) { setStatus(st, "Load the main wallet in step 1 first.", "err"); return; }
+    btn.disabled = true; setStatus(st, "Checking balances…");
+    try {
+      const c = await getClient();
+      const reserve = await getReserve();
+      const plan = [];
+      for (const ch of chips) {
+        const s = await ledgerState(ch.address);
+        const target = ch.drops + reserve + FEE_BUFFER;
+        const send = s.bal >= target ? 0n : target - s.bal;
+        if (send > 0n) plan.push({ ch, send });
+      }
+      if (!plan.length) { setStatus(st, "All chips are already funded.", "ok"); refreshChipStatus(); return; }
+      const ms = await ledgerState(master.address);
+      const need = plan.reduce((t, p) => t + p.send + PAY_FEE * 2n, 0n);
+      if (ms.spendable < need) throw new Error(`The main wallet has ${xrp(ms.spendable)} XRP available but funding needs about ${xrp(need)} XRP. Add more XRP and try again.`);
+      const mw = xrpl.Wallet.fromSeed(master.seed);
+      for (const p of plan) {
+        setStatus(st, `Funding chip ${p.ch.n}…`);
+        const tx = await c.autofill({ TransactionType: "Payment", Account: mw.classicAddress, Destination: p.ch.address, Amount: p.send.toString() });
+        const res = await c.submitAndWait(mw.sign(tx).tx_blob);
+        const code = res.result.meta && res.result.meta.TransactionResult;
+        if (code !== "tesSUCCESS") throw new Error(`Funding chip ${p.ch.n} failed (${code}). Chips before it were funded; press the button again to continue.`);
+        await refreshChipStatus();
+      }
+      setStatus(st, "All chips funded.", "ok");
+      checkMaster();
+    } catch (e) {
+      setStatus(st, e.message === "offline" ? "Couldn't reach the XRP Ledger. Try again." : e.message, "err");
+    } finally { btn.disabled = !(master && chips.length && backedUp); refreshChipStatus(); }
+  });
+
+  // Links
+  $("#baseIn").value = location.href.split("#")[0];
   $("#buildBtn").addEventListener("click", async () => {
     const st = $("#buildStatus");
-    if (!wallet) { setStatus(st, "Create or load a wallet in step 1 first.", "err"); return; }
-    const pass = $("#passIn").value;
-    if (norm(pass).length < 4) { setStatus(st, "Use a passphrase of at least 4 characters.", "err"); return; }
+    if (!chips.length) { setStatus(st, "Create the chip wallets in step 2 first.", "err"); return; }
+    const passes = [...document.querySelectorAll(".passIn")].map(i => i.value);
+    const hints = [...document.querySelectorAll(".hintIn")].map(i => i.value.trim());
+    if (passes.some(p => norm(p).length < 4)) { setStatus(st, "Give every chip a passphrase of at least 4 characters.", "err"); return; }
+    if (new Set(passes.map(norm)).size !== passes.length) { setStatus(st, "Each chip needs a different passphrase.", "err"); return; }
     const base = $("#baseIn").value.trim().split("#")[0];
-    if (!/^https?:\/\//.test(base)) { setStatus(st, "Page link should start with https://", "err"); return; }
+    if (!/^(https?|file):\/\//.test(base)) { setStatus(st, "Page link should start with https://", "err"); return; }
+    const ret = $("#returnChk").checked ? mainAddr() : null;
+    if ($("#returnChk").checked && !ret) { setStatus(st, "Load the main wallet in step 1 so leftover reserves have somewhere to go.", "err"); return; }
     const btn = $("#buildBtn"); btn.disabled = true; setStatus(st, "Encrypting…");
     try {
-      const sealed = await seal(wallet.seed, pass, wallet.address);
-      const obj = { v:1, d:wallet.address, a:$("#amtIn").value.trim() || "XRP",
-        t:$("#toIn").value.trim(), f:$("#fromIn").value.trim(), m:$("#msgIn").value.trim(), h:$("#hintIn").value.trim(), ...sealed };
-      Object.keys(obj).forEach(k => obj[k] === "" && delete obj[k]);
-      // self-test
-      if (await unseal(obj, pass) !== wallet.seed) throw new Error("selftest");
-      const code = encodeGift(obj);
-      const url = base + "#g=" + code;
-      built = { url, code, obj };
-      $("#urlOut").textContent = url;
-      const bytes = te.encode(url).length - 8 + 8; // https:// compresses to 1 byte; ~7 bytes NDEF overhead
-      const tags = [["NTAG213",137],["NTAG215",496],["NTAG216",868]].filter(([,cap]) => bytes <= cap).map(([n]) => n);
-      $("#fitsOut").textContent = `About ${bytes} bytes on the tag. ` + (tags.length ? "Fits: " + tags.join(", ") + "." : "Too long for common tags; shorten the message.");
-      $("#fitsOut").style.color = tags.length ? "" : "var(--err)";
+      const list = $("#linkList"); list.innerHTML = "";
+      for (const [k, c] of chips.entries()) {
+        const sealed = await seal(c.seed, passes[k], c.address);
+        const obj = { v: 1, d: c.address, a: c.denom + " XRP", x: c.drops.toString(), r: ret || "",
+          t: $("#toIn").value.trim(), f: $("#fromIn").value.trim(), m: $("#msgIn").value.trim(), h: hints[k], ...sealed };
+        Object.keys(obj).forEach(key => obj[key] === "" && delete obj[key]);
+        if (await unseal(obj, passes[k]) !== c.seed) throw new Error("selftest");
+        const url = base + "#g=" + encodeGift(obj);
+        const bytes = te.encode(url).length;
+        const tags = [["NTAG213",137],["NTAG215",496],["NTAG216",868]].filter(([,cap]) => bytes <= cap).map(([n]) => n);
+
+        const row = document.createElement("div"); row.className = "chiprow";
+        const t = document.createElement("div"); t.className = "t"; t.textContent = `Chip ${c.n} · ${c.denom} XRP`;
+        const u = document.createElement("div"); u.className = "key"; u.textContent = url;
+        const fit = document.createElement("p"); fit.className = "fits"; fit.textContent = `About ${bytes} bytes. ` + (tags.length ? "Fits: " + tags.join(", ") + "." : "Too long for common tags; shorten the message.");
+        if (!tags.length) fit.style.color = "var(--err)";
+        const r = document.createElement("div"); r.className = "row";
+        const cp = document.createElement("button"); cp.className = "ghost"; cp.textContent = "Copy link";
+        const pv = document.createElement("button"); pv.className = "ghost"; pv.textContent = "Preview";
+        const s2 = document.createElement("div"); s2.className = "status";
+        cp.addEventListener("click", () => copy(url, s2, "Link"));
+        pv.addEventListener("click", () => { previewing = true; openGift(obj); });
+        r.append(cp, pv); row.append(t, u, fit, r, s2); list.appendChild(row);
+      }
       $("#linkOut").classList.remove("hidden");
-      setStatus(st, "Chip link built and tested.", "ok");
+      setStatus(st, "Four chip links built and tested.", "ok");
       $("#linkOut").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-    } catch { setStatus(st, "Couldn't build the link. Try again.", "err"); }
+    } catch { setStatus(st, "Couldn't build the links. Try again.", "err"); }
     finally { btn.disabled = false; }
   });
-  $("#copyUrl").addEventListener("click", () => copy(built.url, $("#linkStatus"), "Link"));
-  $("#copyCode").addEventListener("click", () => copy(built.code, $("#linkStatus"), "Gift code"));
-  $("#previewBtn").addEventListener("click", () => openGift(built.obj));
+  let previewing = false;
+  $("#backSetup").addEventListener("click", e => { e.preventDefault(); previewing = false; clearInterval(window.__chipTimer); show("setup"); $("#linkOut").scrollIntoView(); });
 
   // ---------- ROUTE ----------
   function route() {
